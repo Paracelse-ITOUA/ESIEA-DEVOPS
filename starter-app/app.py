@@ -25,7 +25,7 @@ REQUEST_DURATION = Histogram(
 REQUEST_COUNT = Counter(
     "http_requests_total",
     "Nombre total de requetes HTTP recues",
-    ["method", "endpoint", "status"],
+    ["method", "endpoint", "code"],
 )
 
 DEPLOY_INFO = Gauge(
@@ -78,7 +78,7 @@ def record_metrics(response):
     REQUEST_COUNT.labels(
         method=request.method,
         endpoint=endpoint,
-        status=response.status_code,
+        code=response.status_code,
     ).inc()
 
     REQUEST_DURATION.labels(
