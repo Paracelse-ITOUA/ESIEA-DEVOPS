@@ -1,35 +1,69 @@
 services:
   app-blue:
+    image: ${IMAGE_NAME:-esiea-devops-app}:${IMAGE_TAG:-local}
     build:
       context: ./starter-app
       dockerfile: Dockerfile
     profiles:
       - blue
+    ports:
+      - "5001:5000"
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DEPLOY_COLOR: blue
+      APP_VERSION: ${APP_VERSION:-1.1}
+      COMMIT_SHA: ${COMMIT_SHA:-local}
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - app-network
+    healthcheck:
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=2)
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   app-green:
+    image: ${IMAGE_NAME:-esiea-devops-app}:${IMAGE_TAG:-local}
     build:
       context: ./starter-app
       dockerfile: Dockerfile
     profiles:
       - green
+    ports:
+      - "5002:5000"
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       DEPLOY_COLOR: green
+      APP_VERSION: ${APP_VERSION:-1.1}
+      COMMIT_SHA: ${COMMIT_SHA:-local}
     depends_on:
       redis:
         condition: service_healthy
     networks:
       - app-network
+    healthcheck:
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=2)
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
   redis:
     image: redis:7-alpine
