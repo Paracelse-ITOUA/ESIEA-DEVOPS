@@ -1,0 +1,27 @@
+groups:
+  - name: application
+    rules:
+      - alert: TauxErreur5xxEleve
+        expr: >
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total[5m]))
+          > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Taux d'erreurs HTTP 5xx supérieur à 5 %
+
+      - alert: LatenceP95Elevee
+        expr: >
+          histogram_quantile(
+            0.95,
+            sum by (le, endpoint)
+            (rate(http_request_duration_seconds_bucket[5m]))
+          ) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Latence p95 supérieure à 500 ms
