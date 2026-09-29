@@ -6,11 +6,15 @@ from flask import Flask, Response, jsonify, request
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
     Counter,
+    Gauge,
     Histogram,
     generate_latest,
 )
 
 app = Flask(__name__)
+
+APP_VERSION = os.getenv("APP_VERSION", "1.1")
+COMMIT_SHA = os.getenv("COMMIT_SHA", "local")
 
 REQUEST_DURATION = Histogram(
     "http_request_duration_seconds",
@@ -23,6 +27,17 @@ REQUEST_COUNT = Counter(
     "Nombre total de requetes HTTP recues",
     ["method", "endpoint", "status"],
 )
+
+DEPLOY_INFO = Gauge(
+    "app_deploy_info",
+    "Informations sur la version deployee",
+    ["version", "sha"],
+)
+
+DEPLOY_INFO.labels(
+    version=APP_VERSION,
+    sha=COMMIT_SHA,
+).set(1)
 
 
 ALERT_THRESHOLD = 25
@@ -96,7 +111,7 @@ def health():
 def status():
     return jsonify(
         service="projet-devops-groupe-demo",
-        version="1.1",
+        version=APP_VERSION,
         deploy_color=os.getenv("DEPLOY_COLOR", "unknown"),
     ), 200
 
