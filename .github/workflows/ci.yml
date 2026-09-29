@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python project
+        uses: ./.github/actions/python-setup
+        with:
+          python-version: "3.12"
+
+      - name: Install yamllint
+        run: python -m pip install yamllint
+
+      - name: Lint Python
+        working-directory: starter-app
+        run: flake8 .
+
+      - name: Lint YAML
+        run: |
+          yamllint -d relaxed \
+            .github \
+            docker-compose.yml \
+            observability
+
+  test:
+    name: test-python-${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.12"
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    env:
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python project
+        uses: ./.github/actions/python-setup
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run tests
+        working-directory: starter-app
+        run: |
+          pytest -v \
+            --junitxml=test-results.xml \
+            --cov=app \
+            --cov-report=xml:coverage.xml
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-python-${{ matrix.python-version }}
+          path: |
+            starter-app/test-results.xml
+            starter-app/coverage.xml
+
+  build:
+    name: build
+    needs:
+      - lint
+      - test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t esiea-devops-ci:${{ github.sha }} ./starter-app
+
+  ci-ok:
+    name: ci-ok
+    if: always()
+    needs:
+      - lint
+      - test
+      - build
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Verify CI jobs
+        run: |
+          test "${{ needs.lint.result }}" = "success"
+          test "${{ needs.test.result }}" = "success"
+          test "${{ needs.build.result }}" = "success"
