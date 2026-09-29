@@ -7,7 +7,7 @@ services:
     profiles:
       - blue
     ports:
-      - "5001:5000"
+      - "45001:5000"
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -40,7 +40,7 @@ services:
     profiles:
       - green
     ports:
-      - "5002:5000"
+      - "45002:5000"
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
