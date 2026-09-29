@@ -3,7 +3,7 @@ groups:
     rules:
       - alert: TauxErreur5xxEleve
         expr: >
-          sum(rate(http_requests_total{status=~"5.."}[5m]))
+          sum(rate(http_requests_total{code=~"5.."}[5m]))
           /
           sum(rate(http_requests_total[5m]))
           > 0.05
@@ -25,3 +25,16 @@ groups:
           severity: warning
         annotations:
           summary: Latence p95 supérieure à 500 ms
+
+      - alert: LatenceP99Elevee
+        expr: >
+          histogram_quantile(
+            0.99,
+            sum by (le, endpoint)
+            (rate(http_request_duration_seconds_bucket[5m]))
+          ) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Latence p99 supérieure à 1 seconde
