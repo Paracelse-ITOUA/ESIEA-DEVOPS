@@ -34,6 +34,7 @@ jobs:
         run: |
           for i in $(seq 1 60); do
             RESULT=$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
               --workflow ci.yml \
               --commit "$GITHUB_SHA" \
               --event push \
